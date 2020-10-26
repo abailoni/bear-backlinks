@@ -29,11 +29,23 @@ import urllib.parse
 from shutil import copyfile
 
 backlinks_header = '\n\n---\n### Backlinks'
+add_unreferenced_links_search_link = True
 HOME = os.getenv('HOME', '')
 bear_db = os.path.join(HOME, 'Library/Group Containers/9K33E3U3T4.net.shinyfrog.bear/Application Data/database.sqlite')
 
 from datetime import datetime
 
+# FIXME: check when title has changed (unreferenced link should be updated)
+# TODO:
+#  - add unrefenreced link to everything?
+#  - delete weird timestamps from old titles
+
+
+
+# FIXME: there is something very weird going on...
+# Sometimes some notes are updated only after the second run
+# (and some do not get updated at all)
+# Maybe something related to the database and the link-table...?
 
 def main():
     # current date and time
@@ -99,6 +111,11 @@ def main():
             # If we did not found any link, remove the Backlinks section:
             if nb_found_backlinks > 0:
                 note_text += backlinks
+
+                # Add link to unreferenced-notes-search:
+                if add_unreferenced_links_search_link:
+                    # print(create_link_to_unreferenced(note['Title']))
+                    note_text += "\n- [Search for unreferenced notes](" + create_link_to_unreferenced(note['Title']) + ")"
             update_note(note['UID'], note_text)
 
     print("Done")
@@ -163,6 +180,11 @@ def update_note(uid, new_text):
     x_command = 'bear://x-callback-url/add-text?id=' + uid +'&mode=replace_all&open_note=no&exclude_trashed=no&new_window=no&show_window=no&edit=no&timestamp=no'
     x_callback(x_command, new_text)
 
+
+def create_link_to_unreferenced(note_title):
+    search_term = urllib.parse.quote("\"{}\" -\"[[{}]]\"".format(note_title, note_title))
+    bear_command = 'bear://x-callback-url/search?term=' + search_term + '&show_window=yes'
+    return bear_command
 
 def x_callback(x_command, md_text):
     x_command_text = x_command + '&text=' + urllib.parse.quote(md_text.encode('utf8'))
